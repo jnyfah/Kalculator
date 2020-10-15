@@ -2,6 +2,9 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <iostream>
+
+#include "sourcelocation.cpp"
 
 
 enum class LexerTokenType {
@@ -32,53 +35,50 @@ enum class LexerTokenType {
 struct Token {
     std::string value;
     LexerTokenType type;
+   SourceLocation location;
 };
 
 
 
-Token tokenizeCharacter(std::string str){
+Token tokenizeCharacter(std::string str, unsigned short current, unsigned short row ){
     if(str =="("){
-        Token m_token{str, LexerTokenType::ParenOpen};
+        Token m_token{str, LexerTokenType::ParenOpen, {current,row}};
         return m_token;
 
     } else if(str ==")") {
-        Token m_token{str, LexerTokenType::ParenClose};
+        Token m_token{str, LexerTokenType::ParenClose, {current,row}};
         return m_token;
 
     } else if(str =="+") {
-       Token m_token{str, LexerTokenType::PlusToken};
+       Token m_token{str, LexerTokenType::PlusToken, {current,row}};
         return m_token;
 
     } else if(str == "-") {
-        Token m_token{str, LexerTokenType::MinusToken};
+        Token m_token{str, LexerTokenType::MinusToken, {current,row}};
         return m_token;
 
     } else if(str == "*") {
-        Token m_token{str, LexerTokenType::MultiplyToken};
+        Token m_token{str, LexerTokenType::MultiplyToken, {current,row}};
         return m_token;
 
     } else if(str == "/"){
-        Token m_token{str, LexerTokenType::DivideToken};
-        return m_token;
-
-    } else if(str == " "){
-        Token m_token{str, LexerTokenType::Space};
+        Token m_token{str, LexerTokenType::DivideToken,{current,row}};
         return m_token;
 
     } else if(str == ";") {
-        Token m_token{str, LexerTokenType::SemiColonToken};
+        Token m_token{str, LexerTokenType::SemiColonToken, {current,row}};
         return m_token;
 
     } else if(str == "*") {
-        Token m_token{str, LexerTokenType::MultiplyToken};
+        Token m_token{str, LexerTokenType::MultiplyToken, {current,row}};
         return m_token;
 
     }else if(str == "/") {
-        Token m_token{str, LexerTokenType::DivideToken};
+        Token m_token{str, LexerTokenType::DivideToken, {current,row}};
         return m_token;
 
     } else {
-        Token m_token{str, LexerTokenType::unknown};
+        Token m_token{str, LexerTokenType::unknown, {current,row}};
         return m_token;
     }
 }
@@ -134,8 +134,11 @@ const char* toString(LexerTokenType t){
 
 
 std::vector<Token>Tokenize(std::string input){
-    size_t current  = 0;
+    unsigned short current  = 0;
+    unsigned short row =0;
+    unsigned short location = 0;
     std::string temp;
+    int y;
     std::vector<Token>m_tok;
 
     while(current < input.length()) {
@@ -144,6 +147,7 @@ std::vector<Token>Tokenize(std::string input){
             static const std::regex intRegex{ R"(\d+)"};
 
             temp = input[current];
+            location = current;
             current++;
 
             while(std::isdigit(input[current]) || input[current] == '.') {
@@ -151,25 +155,44 @@ std::vector<Token>Tokenize(std::string input){
                 current++;
             }
             if (std::regex_match(temp, intRegex)) {
-                m_tok.push_back({temp, LexerTokenType::IntToken});
+                m_tok.push_back({temp, LexerTokenType::IntToken, {location,row}});
             }
             else{
-                m_tok.push_back({temp, LexerTokenType::FloatToken});
+                m_tok.push_back({temp, LexerTokenType::FloatToken, {location,row}});
             }
         } else if(std::isalpha(input[current])){
             temp = input[current];
+            location = current;
             current++;   
             while(std::isalpha(input[current]) || input[current] == '_') {
 
                 temp += input[current];
                 current++;
             }
-             m_tok.push_back({temp, LexerTokenType::VarToken});
+             m_tok.push_back({temp, LexerTokenType::VarToken, {location ,row}});
 
+        } else if(input[current] == ' '){
+            temp = input[current];
+            location = current;
+            current++;   
+            while(input[current] == ' ') {
+
+                temp += input[current];
+                current++;
+            }
+             m_tok.push_back({temp, LexerTokenType::Space, {location ,row}});
+           
+           
         } else{
             temp = input[current];
-            m_tok.push_back(tokenizeCharacter(temp));
-            current++;
+            if((input[current] == '-') && (input[current +1] == '>')){
+                m_tok.push_back({"->", LexerTokenType::ArrowToken, {current ,row}});
+                current+=2;
+            }else{
+               m_tok.push_back(tokenizeCharacter(temp, current , row));
+               current++;
+            }
+            
         }
 
     }
